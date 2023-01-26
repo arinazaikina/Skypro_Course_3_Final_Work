@@ -12,4 +12,19 @@ def load_data(path: str) -> List[Dict[str, str]]:
         data = json.load(file)
         return data
 
-print(load_data(path=PATH_TO_JSON_FILE))
+
+def filter_by_operation_type(operations_data: List[Dict[str, str]], operation_type: str) -> List[Dict[str, str]]:
+    """
+    Filters data by operation type
+    """
+    filtered_data = []
+    for operation in operations_data:
+        if operation.get('state') == operation_type:
+            print(operation['state'])
+            filtered_data.append(operation)
+    return filtered_data
+
+# data = load_data(path=PATH_TO_JSON_FILE)
+# print(data)
+# filtered = filter_by_operation_type(operations_data=data, operation_type='EXECUTED')
+# print(filtered)
