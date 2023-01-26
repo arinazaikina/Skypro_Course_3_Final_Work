@@ -1,9 +1,6 @@
 import json
-import os
-from typing import List, Dict
 from datetime import datetime
-
-PATH_TO_JSON_FILE = os.path.join('operations.json')
+from typing import List, Dict
 
 
 def load_data(path: str) -> List[Dict[str, str]]:
@@ -15,8 +12,7 @@ def load_data(path: str) -> List[Dict[str, str]]:
         return data
 
 
-def filter_by_transactions_type(transactions_data: List[Dict[str, str]], transactions_type: str) -> List[
-    Dict[str, str]]:
+def filter_by_transactions_type(transactions_data: List[Dict[str, str]], transactions_type: str) -> List[Dict[str, str]]:
     """
     Filters data by operation type
     """
@@ -38,18 +34,15 @@ def sort_by_transactions_date(transactions_data: List[Dict[str, str]]) -> List[D
 def get_latest_transactions(amount_latest_operations: int,
                             transactions_data: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """
-    Get latest transactions
+    Returns latest transactions
     """
     return transactions_data[:amount_latest_operations]
 
 
-data = load_data(path=PATH_TO_JSON_FILE)
-filtered_data = filter_by_transactions_type(transactions_data=data, transactions_type='EXECUTED')
-sorted_by_date = sort_by_transactions_date(transactions_data=filtered_data)
-last_transactions = get_latest_transactions(amount_latest_operations=5, transactions_data=sorted_by_date)
-
-
 def parse_date_transaction(transaction_data: Dict[str, str]) -> str:
+    """
+    Returns the formatted transaction date
+    """
     raw_date = transaction_data.get('date')
     date_time_obj = datetime.strptime(raw_date, '%Y-%m-%dT%H:%M:%S.%f')
     formatted_data = f'{date_time_obj.day}.{date_time_obj.month}.{date_time_obj.year}'
@@ -57,11 +50,17 @@ def parse_date_transaction(transaction_data: Dict[str, str]) -> str:
 
 
 def parse_description_transaction(transaction_data: Dict[str, str]) -> str:
+    """
+    Returns a description of the transaction
+    """
     description = transaction_data.get('description')
     return description
 
 
 def parse_property(transaction_data: Dict[str, str], direction: str) -> str:
+    """
+    Returns formatted props
+    """
     raw_sender = transaction_data.get(direction)
     if raw_sender is None:
         return 'Данные об отправителе отсутствуют'
@@ -79,20 +78,28 @@ def parse_property(transaction_data: Dict[str, str], direction: str) -> str:
 
 
 def parce_amount(transaction_data: Dict[str, str]):
+    """
+    Returns the transaction amount
+    """
     operation_amount = transaction_data.get('operationAmount')
     amount = operation_amount.get('amount')
     return amount
 
 
 def parce_currency(transaction_data: Dict[str, str]) -> str:
+    """
+    Returns the transaction currency
+    """
     operation_amount = transaction_data.get('operationAmount')
     amount = operation_amount.get('currency').get('name')
     return amount
 
 
 def print_info(transaction_data: Dict[str, str]) -> None:
+    """
+    Displays information about the transaction
+    """
     result = f'{parse_date_transaction(transaction_data)} {parse_description_transaction(transaction_data)}\n' \
              f'{parse_property(transaction_data, direction="from")} -> {parse_property(transaction_data, direction="to")}\n' \
              f'{parce_amount(transaction_data)} {parce_currency(transaction_data)}'
     print(result)
-
