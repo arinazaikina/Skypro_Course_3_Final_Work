@@ -23,6 +23,17 @@ def filter_by_transactions_type(transactions_data: List[Dict[str, str]], transac
     return filtered_data
 
 
+def filter_by_presence_of_key_from(transactions_data: List[Dict[str, str]], key:str) -> List[Dict[str, str]]:
+    """
+    Filters data by the presence of the "from" key
+    """
+    filtered_data = []
+    for transaction in transactions_data:
+        if key in transaction:
+            filtered_data.append(transaction)
+    return filtered_data
+
+
 def sort_by_transactions_date(transactions_data: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """
     Sort transactions by date
