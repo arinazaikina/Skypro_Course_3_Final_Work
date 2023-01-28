@@ -1,18 +1,28 @@
-import json
-from datetime import datetime
-from typing import List, Dict
+import requests
+from typing import List, Dict, Optional
 
 
-def load_data(path: str) -> List[Dict[str, str]]:
+def get_data(url):
     """
-    Loads data from a json-file
+    Returns data from external resource
     """
-    with open(path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
+    try:
+        response = requests.get(url, verify=False)
+        if response.status_code != 200:
+            raise LookupError(f'статус код {response.status_code}')
+        if not response:
+            return []
+        data = response.json()
+        if not data:
+            raise LookupError('Ответ пустой')
         return data
+    except (requests.exceptions.RequestException, LookupError) as error:
+        print(f'Не могу получить данные, {error}')
+        return []
 
 
-def filter_by_transactions_type(transactions_data: List[Dict[str, str]], transactions_type: str) -> List[Dict[str, str]]:
+def filter_by_transactions_type(transactions_data: List[Dict[str, str]],
+                                transactions_type: str) -> List[Dict[str, str]]:
     """
     Filters data by operation type
     """
@@ -23,7 +33,7 @@ def filter_by_transactions_type(transactions_data: List[Dict[str, str]], transac
     return filtered_data
 
 
-def filter_by_presence_of_key_from(transactions_data: List[Dict[str, str]], key:str) -> List[Dict[str, str]]:
+def filter_by_presence_of_key_from(transactions_data: List[Dict[str, str]], key: str) -> List[Dict[str, str]]:
     """
     Filters data by the presence of the "from" key
     """
@@ -38,8 +48,11 @@ def sort_by_transactions_date(transactions_data: List[Dict[str, str]]) -> List[D
     """
     Sort transactions by date
     """
-    sorted_data_by_date = sorted(transactions_data, key=lambda x: x['date'], reverse=True)
-    return sorted_data_by_date
+    try:
+        sorted_data_by_date = sorted(transactions_data, key=lambda x: x['date'], reverse=True)
+        return sorted_data_by_date
+    except KeyError:
+        return []
 
 
 def get_latest_transactions(amount_latest_operations: int,
@@ -47,17 +60,22 @@ def get_latest_transactions(amount_latest_operations: int,
     """
     Returns latest transactions
     """
-    return transactions_data[:amount_latest_operations]
+    if amount_latest_operations > 0:
+        return transactions_data[:amount_latest_operations]
+    return []
 
 
-def parse_date_transaction(transaction_data: Dict[str, str]) -> str:
+def parse_date_transaction(transaction_data: Dict[str, str]) -> Optional[str]:
     """
     Returns the formatted transaction date
     """
-    raw_date = transaction_data.get('date')
-    date_time_obj = datetime.strptime(raw_date, '%Y-%m-%dT%H:%M:%S.%f')
-    formatted_data = f'{date_time_obj.day}.{date_time_obj.month}.{date_time_obj.year}'
-    return formatted_data
+    try:
+        raw_date = transaction_data.get('date')
+        date_obj = raw_date.split('T')[0].split('-')
+        formatted_data = f'{date_obj[2]}.{date_obj[1]}.{date_obj[0]}'
+        return formatted_data
+    except AttributeError or IndexError:
+        return None
 
 
 def parse_description_transaction(transaction_data: Dict[str, str]) -> str:
@@ -74,7 +92,7 @@ def parse_property(transaction_data: Dict[str, str], direction: str) -> str:
     """
     raw_sender = transaction_data.get(direction)
     if raw_sender is None:
-        return 'Данные об отправителе отсутствуют'
+        return 'Данные отсутствуют'
     if raw_sender.split()[0] == 'Счет':
         return f'{raw_sender.split()[0]} ' + '**' + f'{raw_sender.split()[1][-4:]}'
     card_number = ''
@@ -85,32 +103,39 @@ def parse_property(transaction_data: Dict[str, str], direction: str) -> str:
         else:
             name_card += symbol
     card_number_hide = f'{card_number[:4]} ' + f'{card_number[4:6]}' + '** **** ' + f'{card_number[-4:]}'
-    return f'{name_card} {card_number_hide}'
+    return f'{name_card}{card_number_hide}'
 
 
-def parce_amount(transaction_data: Dict[str, str]):
+def parce_amount(transaction_data: Dict[str, str]) -> Optional[str]:
     """
     Returns the transaction amount
     """
-    operation_amount = transaction_data.get('operationAmount')
-    amount = operation_amount.get('amount')
-    return amount
+    try:
+        operation_amount = transaction_data.get('operationAmount')
+        amount = operation_amount.get('amount')
+        return amount
+    except AttributeError:
+        return None
 
 
-def parce_currency(transaction_data: Dict[str, str]) -> str:
+def parce_currency(transaction_data: Dict[str, str]) -> Optional[str]:
     """
     Returns the transaction currency
     """
-    operation_amount = transaction_data.get('operationAmount')
-    amount = operation_amount.get('currency').get('name')
-    return amount
+    try:
+        operation_amount = transaction_data.get('operationAmount')
+        amount = operation_amount.get('currency').get('name')
+        return amount
+    except AttributeError:
+        return None
 
 
-def print_info(transaction_data: Dict[str, str]) -> None:
+def get_info_about_transaction(transaction_data: Dict[str, str]) -> str:
     """
     Displays information about the transaction
     """
     result = f'{parse_date_transaction(transaction_data)} {parse_description_transaction(transaction_data)}\n' \
-             f'{parse_property(transaction_data, direction="from")} -> {parse_property(transaction_data, direction="to")}\n' \
+             f'{parse_property(transaction_data, direction="from")} -> ' \
+             f'{parse_property(transaction_data, direction="to")}\n' \
              f'{parce_amount(transaction_data)} {parce_currency(transaction_data)}'
-    print(result)
+    return result

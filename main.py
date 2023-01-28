@@ -1,16 +1,15 @@
-import os
+import warnings
+from data.link_to_data import url
 from funcs import (
-    load_data,
+    get_data,
     filter_by_transactions_type,
     filter_by_presence_of_key_from,
     sort_by_transactions_date,
     get_latest_transactions,
-    print_info
+    get_info_about_transaction
 )
 
-
 IGNORE_INCOMPLETE_TRANSACTIONS = False
-PATH_TO_JSON_FILE = os.path.join('operations.json')
 
 
 def main() -> None:
@@ -20,7 +19,8 @@ def main() -> None:
     that have data from where it was made. Otherwise, filtering by the presence
     of the "from" key is not applied.
     """
-    data = load_data(path=PATH_TO_JSON_FILE)
+    warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+    data = get_data(url=url)
     filtered_data_by_transactions_type = filter_by_transactions_type(
         transactions_data=data,
         transactions_type='EXECUTED'
@@ -39,7 +39,7 @@ def main() -> None:
 
     for transaction in last_transactions:
         print('*' * 50)
-        print_info(transaction_data=transaction)
+        print(get_info_about_transaction(transaction_data=transaction))
     print('*' * 50)
 
 
